@@ -1,0 +1,5 @@
+Follow instructions here:
+http://docs.platformio.org/en/latest/installation.html
+
+Run "platformio run" in the Prototype1 directory to compile only
+Run "platformio run --target upload" in the Prototype1 directory to compile and upload
