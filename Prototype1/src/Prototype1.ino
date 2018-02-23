@@ -7,13 +7,14 @@
 
 #include <ESP8266WiFi.h>
 
-//const char* ssid     = "Apt420";
-//const char* password = "xfinity420";
+#define BNO055_SAMPLERATE_DELAY_MS (10)
 
 const char* ssid     = "CMU";
 const char* password = "";
 
 const char* host = "wifitest.adafruit.com";
+
+uint32 website_ping_timer = millis();
 
 void setup() {
     Serial.begin(115200);
@@ -43,10 +44,7 @@ void setup() {
 
 int value = 0;
 
-void loop() {
-    delay(5000);
-    ++value;
-
+void pingWebsite() {
     Serial.print("connecting to ");
     Serial.println(host);
 
@@ -77,4 +75,20 @@ void loop() {
 
     Serial.println();
     Serial.println("closing connection");
+}
+
+void loop()
+{
+    // If millis wraps around, reset timer
+    if (millis() - website_ping_timer < 0) website_ping_timer = millis();
+
+    // Ping the website every 5 seconds
+    if (millis() - website_ping_timer > 5000) {
+        website_ping_timer = millis();
+        ++value;
+        pingWebsite();
+    }
+
+    // Print sensor data every 10 ms
+    delay(BNO055_SAMPLERATE_DELAY_MS);
 }
