@@ -8,6 +8,7 @@
 #include <ESP8266WiFi.h>
 
 #define BNO055_SAMPLERATE_DELAY_MS (10)
+Adafruit_BNO055 bno = Adafruit_BNO055();
 
 const char* ssid     = "CMU";
 const char* password = "";
@@ -42,7 +43,7 @@ void setup() {
     Serial.println(WiFi.macAddress());
 
     // from rawdata.ino
-    Serial.begin(9600);
+    Serial.begin(115200);
     Serial.println("Orientation Sensor Raw Data Test"); Serial.println("");
 
     /* Initialise the sensor */
