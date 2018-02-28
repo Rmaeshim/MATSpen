@@ -3,8 +3,8 @@ import time
 import math
 import asyncio
 
-from Prototype1 import Message
-from Prototype1.device import Arduino
+from atlasbuggy import Message
+from atlasbuggy.device import Arduino
 
 
 class Bno055Vector:
@@ -120,6 +120,7 @@ class BNO055(Arduino):
         super(BNO055, self).__init__(
             "BNO055-IMU", enabled=enabled,
         )
+        self.message = Bno055Message(time.time())
 
     async def loop(self):
         counter = 0
@@ -138,35 +139,40 @@ class BNO055(Arduino):
 
     def parse_packet(self, packet_time, packet, packet_num):
         data = packet.split("\t")
+        if data.pop(0) != 'imu':
+            self.logger.warning("Invalid message header: %s" % str(packet))
+            return
+
         segment = ""
-        message = Bno055Message(time.time(), packet_num)
-        message.packet_time = packet_time
+        self.message.timestamp = time.time()
+        self.message.n = packet_num
+        self.message.packet_time = packet_time
         try:
             for segment in data:
                 if len(segment) > 0:
                     if segment[0] == "t":
-                        message.arduino_time = float(segment[1:]) / 1000
+                        self.message.arduino_time = float(segment[1:]) / 1000
                     elif segment[0] == "e":
-                        message.euler[segment[1]] = math.radians(float(segment[2:]))
+                        self.message.euler[segment[1]] = math.radians(float(segment[2:]))
                     elif segment[0] == "a":
-                        message.accel[segment[1]] = float(segment[2:])
+                        self.message.accel[segment[1]] = float(segment[2:])
                     elif segment[0] == "g":
-                        message.gyro[segment[1]] = float(segment[2:])
+                        self.message.gyro[segment[1]] = float(segment[2:])
                     elif segment[0] == "m":
-                        message.mag[segment[1]] = float(segment[2:])
+                        self.message.mag[segment[1]] = float(segment[2:])
                     elif segment[0] == "l":
-                        message.linaccel[segment[1]] = float(segment[2:])
+                        self.message.linaccel[segment[1]] = float(segment[2:])
                     elif segment[0] == "q":
-                        message.quat[segment[1]] = float(segment[2:])
+                        self.message.quat[segment[1]] = float(segment[2:])
                     elif segment[0] == "s":
                         if segment[1] == "s":
-                            message.system_status = int(segment[2:])
+                            self.message.system_status = int(segment[2:])
                         elif segment[1] == "a":
-                            message.accel_status = int(segment[2:])
+                            self.message.accel_status = int(segment[2:])
                         elif segment[1] == "g":
-                            message.gyro_status = int(segment[2:])
+                            self.message.gyro_status = int(segment[2:])
                         elif segment[1] == "m":
-                            message.mag_status = int(segment[2:])
+                            self.message.mag_status = int(segment[2:])
                     else:
                         self.logger.warning("Invalid segment type! Segment: '%s', packet: '%s'" % (segment[0], data))
                 else:
@@ -174,4 +180,4 @@ class BNO055(Arduino):
         except ValueError:
             self.logger.error("Failed to parse: '%s'" % segment)
 
-        return message
+        return self.message
