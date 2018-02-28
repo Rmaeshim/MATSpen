@@ -3,8 +3,8 @@ import time
 import math
 import asyncio
 
-from atlasbuggy import Message
-from atlasbuggy.device import Arduino
+from Prototype1 import Message
+from Prototype1.device import Arduino
 
 
 class Bno055Vector:

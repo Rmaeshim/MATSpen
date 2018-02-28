@@ -17,6 +17,10 @@ const char* host = "wifitest.adafruit.com";
 
 uint32 website_ping_timer = millis();
 
+//data format setup
+imu::Vector<3> euler;
+float ex, ey, ez;
+
 void setup() {
     Serial.begin(115200);
     delay(100);
@@ -128,15 +132,50 @@ void loop()
     // - VECTOR_GRAVITY       - m/s^2
     imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
-    /* Display the floating point data */
-    Serial.print("X: ");
-    Serial.print(euler.x());
-    Serial.print(" Y: ");
-    Serial.print(euler.y());
-    Serial.print(" Z: ");
-    Serial.print(euler.z());
-    Serial.print("\t\t");
+    //For corrected XYZ values as Euler
+    //float new_ex = euler.x();
+    //float new_ey = euler.y();
+    //float new_ez = euler.z();
 
+    // xyz is yaw pitch roll. switching roll pitch yaw
+    //if (new_ex != ex) {
+    //    Serial.print("\tez:  ");
+    //    Serial.print(ex, 4);
+    //    ex = new_ex;
+    //}
+
+    //if (new_ey != ey) {
+  //      Serial.print("\tey:  ");
+  //      Serial.print(ey, 4);
+//        ey = new_ey;
+//    }
+
+    //if (new_ez != ez) {
+    //    Serial.print("\tex:  ");
+    //    Serial.print(ez, 4);
+    //    ez = new_ez;
+  //  }
+
+    /* Display the floating point data */
+    //Serial.print("\t");
+    //Serial.print("X: ");
+    //Serial.print(euler.x());
+    //Serial.print(" Y: ");
+    //Serial.print(euler.y());
+    //Serial.print(" Z: ");
+    //Serial.print(euler.z());
+    //Serial.print("\t\t");
+
+
+    //Flipped x and z for roll, pitch, yaw
+    //Serial prints as string of data
+    Serial.print("\t");
+    Serial.print(euler.z());
+    Serial.print(",");
+    Serial.print(euler.y());
+    Serial.print(",");
+    Serial.print(euler.x());
+    Serial.print("\t\t");
     /*
     // Quaternion data
     imu::Quaternion quat = bno.getQuat();
