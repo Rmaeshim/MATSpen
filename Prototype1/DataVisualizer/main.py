@@ -1,6 +1,6 @@
 import time
-import random
 import asyncio
+import numpy as np
 from threading import Event
 from matplotlib import pyplot as plt
 
@@ -15,6 +15,7 @@ class Visualizer(Node):
 
         self.pause_time = 1 / 30
         self.exit_event = Event()
+        self.plot_paused = False
         self.arduino_times = []
 
         self.bno055_tag = "bno055"
@@ -27,9 +28,9 @@ class Visualizer(Node):
 
         self.bno_plot = self.fig.add_subplot(1, 1, 1)
 
-        self.x_line = self.bno_plot.plot([], [], label="x")[0]
-        self.y_line = self.bno_plot.plot([], [], label="y")[0]
-        self.z_line = self.bno_plot.plot([], [], label="z")[0]
+        self.x_line = self.bno_plot.plot([], [], '.-', label="x")[0]
+        self.y_line = self.bno_plot.plot([], [], '.-', label="y")[0]
+        self.z_line = self.bno_plot.plot([], [], '.-', label="z")[0]
 
         plt.legend(fontsize="x-small", shadow="True", loc=0)
         plt.ion()
@@ -47,26 +48,32 @@ class Visualizer(Node):
         while not self.exit_event.is_set():
             while not self.bno055_queue.empty():
                 message = await asyncio.wait_for(self.bno055_queue.get(), timeout=1)
-
                 self.arduino_times.append(message.arduino_time)
 
                 x_data.append(message.euler.x)
                 y_data.append(message.euler.y)
                 z_data.append(message.euler.z)
 
-                timestamps.append(time.time())
+                timestamps.append(message.arduino_time)
 
-            self.x_line.set_xdata(timestamps)
-            self.x_line.set_ydata(x_data)
+                if len(timestamps) > 500:
+                    timestamps.pop(0)
+                    x_data.pop(0)
+                    y_data.pop(0)
+                    z_data.pop(0)
 
-            self.y_line.set_xdata(timestamps)
-            self.y_line.set_ydata(y_data)
+            if not self.plot_paused:
+                self.x_line.set_xdata(timestamps)
+                self.x_line.set_ydata(x_data)
 
-            self.z_line.set_xdata(timestamps)
-            self.z_line.set_ydata(z_data)
+                self.y_line.set_xdata(timestamps)
+                self.y_line.set_ydata(y_data)
 
-            self.bno_plot.relim()
-            self.bno_plot.autoscale_view()
+                self.z_line.set_xdata(timestamps)
+                self.z_line.set_ydata(z_data)
+
+                self.bno_plot.relim()
+                self.bno_plot.autoscale_view()
 
             await self.draw()
 
@@ -74,6 +81,9 @@ class Visualizer(Node):
         """matplotlib key press event. Close all figures when q is pressed"""
         if event.key == "q":
             self.exit_event.set()
+        if event.key == " ":
+            self.plot_paused = not self.plot_paused
+            print("Plot is paused:", self.plot_paused)
 
     async def draw(self):
         self.fig.canvas.draw()
@@ -82,7 +92,9 @@ class Visualizer(Node):
 
     async def teardown(self):
         plt.close("all")
-        print("arduino time fps avg: %0.4fms" % (sum(self.arduino_times) / len(self.arduino_times)))
+        if len(self.arduino_times) > 0:
+            time_diff = np.diff(self.arduino_times)
+            print("arduino time fps avg: %0.4f" % (len(self.arduino_times) / sum(time_diff)))
 
 
 class VisualizerOrchestrator(Orchestrator):
