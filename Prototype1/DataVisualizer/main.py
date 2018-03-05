@@ -1,3 +1,4 @@
+import csv
 import time
 import asyncio
 import numpy as np
@@ -32,6 +33,9 @@ class Visualizer(Node):
         self.y_line = self.bno_plot.plot([], [], '.-', label="y")[0]
         self.z_line = self.bno_plot.plot([], [], '.-', label="z")[0]
 
+        self.data_log = open("%s.csv" % time.time(), 'w+')
+        self.data_writer = csv.writer(self.data_log)
+
         plt.legend(fontsize="x-small", shadow="True", loc=0)
         plt.ion()
         plt.show(block=False)
@@ -55,6 +59,8 @@ class Visualizer(Node):
                 z_data.append(message.euler.z)
 
                 timestamps.append(message.arduino_time)
+
+                self.data_writer.writerow([message.arduino_time, message.euler.x, message.euler.y, message.euler.z])
 
                 if len(timestamps) > 500:
                     timestamps.pop(0)
@@ -92,7 +98,10 @@ class Visualizer(Node):
 
     async def teardown(self):
         plt.close("all")
-        if len(self.arduino_times) > 0:
+
+        self.data_log.close()
+
+        if len(self.arduino_times) > 1:
             time_diff = np.diff(self.arduino_times)
             print("arduino time fps avg: %0.4f" % (len(self.arduino_times) / sum(time_diff)))
 
