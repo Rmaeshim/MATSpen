@@ -1,0 +1,3 @@
+[submodule "TremorGenerator/TremorGeneratorFirmware/TremorGenerator/TremorGeneratorFirmware/lib/Encoder"]
+	path = TremorGenerator/TremorGeneratorFirmware/TremorGenerator/TremorGeneratorFirmware/lib/Encoder
+	url = https://github.com/PaulStoffregen/Encoder.git
