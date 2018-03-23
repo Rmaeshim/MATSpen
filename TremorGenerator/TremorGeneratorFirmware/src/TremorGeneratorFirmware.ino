@@ -4,7 +4,8 @@
 
 SerialManager manager("tremor-generator");
 
-TB6612 motor(12.0, 75.81, 6.4, 8.55, 3.2, 0.39);
+TB6612 motor(12.0, 75.81, 6.4, 8.55, 3.2, 0.39);  // 75:1
+// TB6612 motor(12.0, 51.45, 6.7, 8.55, 3.2, 0.39);  // 50:1
 
 void setup() {
     motor.begin();
@@ -45,6 +46,7 @@ void loop()
                     motor.standby();
                 }
                 else {
+                    motor.pidEnabled = false;
                     if (!motor.isAwake()) {
                         motor.wakeup();
                     }

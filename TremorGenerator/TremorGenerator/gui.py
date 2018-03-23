@@ -25,11 +25,11 @@ class TkinterGUI(Node):
         self.set_pid_button = Button(self.root, text="Set PID", command=self.set_pid)
         self.set_pid_button.pack()
 
-        self.set_point_slider = Scale(self.root, label="speed", from_=-6.0, to=6.0, resolution=0.01, orient=HORIZONTAL, length=self.width)
+        self.set_point_slider = Scale(self.root, label="speed", from_=-10.0, to=10.0, resolution=0.01, orient=HORIZONTAL, length=self.width)
         self.set_point_button = Button(self.root, text="Set speed", command=self.set_motor_speed)
         self.stop_motor_button = Button(self.root, text="Stop motor", command=self.stop_motor)
 
-        self.command_raw_slider = Scale(self.root, label="command", from_=-7.0, to=7.0, resolution=0.01, orient=HORIZONTAL, length=self.width)
+        self.command_raw_slider = Scale(self.root, label="command", from_=-255, to=255, orient=HORIZONTAL, length=self.width)
         self.command_raw_button = Button(self.root, text="Set command", command=self.command_raw_speed)
 
         self.set_point_slider.pack()
@@ -103,6 +103,6 @@ class TkinterGUI(Node):
         self.tb6612.command_motor(self.set_point_slider.get())
 
     def command_raw_speed(self):
-        motor_command = self.command_raw_slider.get() * 255 / 6.55
+        motor_command = self.command_raw_slider.get()
         print("sent:", motor_command)
         self.tb6612.command_raw(motor_command)
