@@ -88,4 +88,3 @@ class TB6612(Arduino):
         self.write("ki%s" % ki)
         self.write("kd%s" % kd)
         self.write("r")
-
