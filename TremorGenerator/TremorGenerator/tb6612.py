@@ -1,5 +1,6 @@
 import time
 import asyncio
+
 from atlasbuggy import Message
 from atlasbuggy.device.arduino import Arduino
 
@@ -19,6 +20,7 @@ class TB6612Message(Message):
 
 class TB6612(Arduino):
     def __init__(self):
+        self.set_logger(write=True)
         super(TB6612, self).__init__("tremor-generator")
 
         self.prev_message = TB6612Message(0, time.time())
