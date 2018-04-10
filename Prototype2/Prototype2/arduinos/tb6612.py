@@ -77,9 +77,11 @@ class TB6612(Arduino):
         return message
 
     def command_motor(self, speed_rps):
+        print("setting speed to %s rps" % speed_rps)
         self.write("s%s" % speed_rps)
 
     def command_raw(self, motor_command):
+        print("setting command to %s" % motor_command)
         self.write("d%s" % int(motor_command))
 
     def power_off_motor(self):

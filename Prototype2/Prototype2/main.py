@@ -2,12 +2,12 @@ import matplotlib
 
 from atlasbuggy import Orchestrator, run
 
-from plotter import Plotter
-from tb6612 import TB6612
-from bno055 import BNO055
+from graphical.plotter import Plotter
+from arduinos.tb6612 import TB6612
+from arduinos.bno055 import BNO055
 
 matplotlib.use('TkAgg')  # keeps tkinter happy
-from gui import TkinterGUI
+from graphical.gui import TkinterGUI
 
 
 class VisualizerOrchestrator(Orchestrator):
@@ -16,15 +16,15 @@ class VisualizerOrchestrator(Orchestrator):
         super(VisualizerOrchestrator, self).__init__(event_loop)
 
         self.tb6612 = TB6612()
-        self.bno055 = BNO055()
-        self.plotter = Plotter(enabled=True, log_to_csv=False)
-        self.gui = TkinterGUI()
+        self.bno055 = BNO055(enabled=False)
+        self.plotter = Plotter(enabled=True)
+        self.gui = TkinterGUI("constants/pid_constants.pkl")
 
         self.subscribe(self.tb6612, self.plotter, self.plotter.tb6612_tag)
         self.subscribe(self.bno055, self.plotter, self.plotter.bno055_tag)
         self.subscribe(self.tb6612, self.gui, self.gui.tb6612_tag)
 
-    async def setup(self):
-        self.tb6612.command_motor(6.0)
+    # async def setup(self):
+    #     self.tb6612.command_motor(6.0)
 
 run(VisualizerOrchestrator)

@@ -6,7 +6,7 @@ from atlasbuggy import Node
 
 
 class TkinterGUI(Node):
-    def __init__(self):
+    def __init__(self, pickle_file_path):
         super(TkinterGUI, self).__init__()
         self.interval = 1 / 30
 
@@ -25,7 +25,7 @@ class TkinterGUI(Node):
         self.set_pid_button = Button(self.root, text="Set PID", command=self.set_pid)
         self.set_pid_button.pack()
 
-        self.set_point_slider = Scale(self.root, label="speed", from_=-10.0, to=10.0, resolution=0.01, orient=HORIZONTAL, length=self.width)
+        self.set_point_slider = Scale(self.root, label="speed", from_=-6.4, to=6.4, resolution=0.01, orient=HORIZONTAL, length=self.width)
         self.set_point_button = Button(self.root, text="Set speed", command=self.set_motor_speed)
         self.stop_motor_button = Button(self.root, text="Stop motor", command=self.stop_motor)
 
@@ -47,7 +47,7 @@ class TkinterGUI(Node):
         )
         self.tb6612 = None
 
-        self.pickle_file_path = "pid_constants.pkl"
+        self.pickle_file_path = pickle_file_path
         self.kp = 1.0
         self.ki = 0.0
         self.kd = 0.0
@@ -100,6 +100,7 @@ class TkinterGUI(Node):
         self.tb6612.command_motor(0)
 
     def set_motor_speed(self):
+        print("setting motor from slider")
         self.tb6612.command_motor(self.set_point_slider.get())
 
     def command_raw_speed(self):

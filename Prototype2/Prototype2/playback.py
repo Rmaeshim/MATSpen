@@ -3,10 +3,9 @@ import os
 from atlasbuggy import Orchestrator, run
 from atlasbuggy.log.playback import PlaybackNode
 
-# from plotter import Plotter
-from fft_plotter import Plotter
-from bno055 import BNO055Playback
-from tb6612 import TB6612Message
+from graphical.fft_plotter import Plotter
+from arduinos.bno055 import BNO055Playback
+from arduinos.tb6612 import TB6612Message
 
 
 class PlaybackOrchestrator(Orchestrator):
