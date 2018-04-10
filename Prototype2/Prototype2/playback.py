@@ -6,6 +6,7 @@ from atlasbuggy.log.playback import PlaybackNode
 from graphical.fft_plotter import Plotter
 from arduinos.bno055 import BNO055Playback
 from arduinos.tb6612 import TB6612Message
+from csv_creator import CsvCreator
 
 
 class PlaybackOrchestrator(Orchestrator):
@@ -24,8 +25,12 @@ class PlaybackOrchestrator(Orchestrator):
 
         plotter = Plotter(enabled=True)
 
+        csv_creator = CsvCreator(os.path.join("data", "%s %s.csv" % (log_time[:-4], log_date[5:])))
+
         self.subscribe(tb6612, plotter, plotter.tb6612_tag)
         self.subscribe(bno055, plotter, plotter.bno055_tag)
 
+        self.subscribe(tb6612, csv_creator, csv_creator.tb6612_tag)
+        self.subscribe(bno055, csv_creator, csv_creator.bno055_tag)
 
 run(PlaybackOrchestrator)

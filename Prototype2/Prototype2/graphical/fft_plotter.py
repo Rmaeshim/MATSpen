@@ -15,25 +15,29 @@ class Plotter(DataPlotterBase):
 
     def calculate_sensing_fft(self):
         bno_freq = np.fft.fftfreq(len(self.bno_timestamps), np.mean(np.diff(self.bno_timestamps)))
-        bno_x_fft = abs(np.fft.fft(self.x_data))
+        bno_fft = abs(np.fft.fft(self.x_data))
 
-        indices = bno_freq > 0.1
+        indices = (0.1 < bno_freq) & (bno_freq < 20.0)
         bno_freq = bno_freq[indices]
-        bno_x_fft = bno_x_fft[indices]
+        bno_fft = bno_fft[indices]
 
         self.bno_x_line.set_xdata(bno_freq)
-        self.bno_x_line.set_ydata(bno_x_fft)
+        self.bno_x_line.set_ydata(bno_fft)
 
         self.bno_plot.relim()
         self.bno_plot.autoscale_view()
 
     def calculate_input_fft(self):
-        speed_freq = np.fft.fftfreq(len(self.speed_timestamps), np.mean(np.diff(self.speed_timestamps)))
-        speed_fft = abs(np.fft.fft(self.speed_data))
+        # speed_freq = np.fft.fftfreq(len(self.speed_timestamps), np.mean(np.diff(self.speed_timestamps)))
+        # speed_fft = abs(np.fft.fft(self.position_data))
+        #
+        # indices = (0.1 < speed_freq) & (speed_freq < 40.0)
+        # speed_freq = speed_freq[indices]
+        # speed_fft = speed_fft[indices]
 
-        indices = speed_freq > 0.1
-        speed_freq = speed_freq[indices]
-        speed_fft = speed_fft[indices]
+        # plt.hist(x, 50, normed=1, facecolor='green', alpha=0.75)
+        speed_fft, bin_edges = np.histogram(self.speed_data, density=True, bins=np.arange(0, 20, 0.01))
+        speed_freq = np.linspace(0, 20, len(speed_fft))
 
         self.speed_line.set_xdata(speed_freq)
         self.speed_line.set_ydata(speed_fft)

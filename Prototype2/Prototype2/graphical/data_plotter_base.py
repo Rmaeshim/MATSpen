@@ -34,6 +34,7 @@ class DataPlotterBase(Node):
 
         self.speed_timestamps = []
         self.speed_data = []
+        self.position_data = []
         self.speed_t0 = None
 
         self.bno_timestamps = []
@@ -93,6 +94,7 @@ class DataPlotterBase(Node):
                     continue
 
             while self.speed_timestamps[-1] - self.speed_timestamps[0] > self.time_data_window:
+                self.position_data.pop(0)
                 self.speed_timestamps.pop(0)
                 self.speed_data.pop(0)
 
@@ -118,6 +120,7 @@ class DataPlotterBase(Node):
 
             self.tb6612_times.append(message.arduino_time)
             self.speed_data.append(message.speed)
+            self.position_data.append(message.position)
             self.speed_timestamps.append(message.arduino_time)
 
     async def get_bno055_data(self):

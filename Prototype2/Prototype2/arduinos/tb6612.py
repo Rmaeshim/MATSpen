@@ -84,6 +84,8 @@ class TB6612(Arduino):
         print("setting command to %s" % motor_command)
         self.write("d%s" % int(motor_command))
 
+    # def command_function(self, amplitude, phase):
+
     def power_off_motor(self):
         self.write("d|")
 
