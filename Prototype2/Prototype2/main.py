@@ -16,7 +16,7 @@ class VisualizerOrchestrator(Orchestrator):
         super(VisualizerOrchestrator, self).__init__(event_loop)
 
         self.tb6612 = TB6612()
-        self.bno055 = BNO055(enabled=False)
+        self.bno055 = BNO055(enabled=True)
         self.plotter = Plotter(enabled=True)
         self.gui = TkinterGUI("constants/pid_constants.pkl")
 

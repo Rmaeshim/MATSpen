@@ -211,9 +211,9 @@ class BNO055(Arduino):
 
 
 class BNO055Playback(PlaybackNode):
-    def __init__(self, file_name, directory=None, enabled=True):
+    def __init__(self, file_name, directory=None, enabled=True, **playback_kwargs):
         bno055_name = "BNO055"
 
         directory = os.path.join(directory, bno055_name)
         super(BNO055Playback, self).__init__(file_name, directory=directory, enabled=enabled,
-                                             message_class=Bno055Message, name=bno055_name)
+                                             message_class=Bno055Message, name=bno055_name, **playback_kwargs)

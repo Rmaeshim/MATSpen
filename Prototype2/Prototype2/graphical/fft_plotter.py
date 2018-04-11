@@ -15,7 +15,7 @@ class Plotter(DataPlotterBase):
 
     def calculate_sensing_fft(self):
         bno_freq = np.fft.fftfreq(len(self.bno_timestamps), np.mean(np.diff(self.bno_timestamps)))
-        bno_fft = abs(np.fft.fft(self.x_data))
+        bno_fft = abs(np.fft.fft(self.y_data))
 
         indices = (0.1 < bno_freq) & (bno_freq < 20.0)
         bno_freq = bno_freq[indices]
