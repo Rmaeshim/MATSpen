@@ -2,30 +2,23 @@
 #include <SerialManager.h>
 // #define DEBUG
 
+const unsigned long DEFAULT_TIME = 1357041600; // Jan 1 2013
+
+
 SerialManager::SerialManager(String whoiam)
 {
     _command = "";
     _whoiam = whoiam;
     _initPacket = "";
     _paused = true;
-}
-
-void SerialManager::begin()
-{
-    Serial.begin(DEFAULT_RATE);
-    #ifdef DEBUG
-    Serial.print("BAUD is ");
-    Serial.println(DEFAULT_RATE);
-    #endif
+    _arduinoPrevTime = 0;
+    _overflowCount = 0;
 }
 
 void SerialManager::setInitData(String initData) {
     _initPacket = initData;
 }
 
-bool SerialManager::available() {
-    return Serial.available() > 0;
-}
 
 int SerialManager::readSerial()
 {
@@ -39,6 +32,7 @@ int SerialManager::readSerial()
 
     if (_command.charAt(0) == '~')
     {
+        unsigned long new_time;
         switch (_command.charAt(1)) {
             case '>':  // start command
                 #ifdef DEBUG
@@ -46,6 +40,13 @@ int SerialManager::readSerial()
                 Serial.print("_paused is ");
                 Serial.println(!_paused);
                 #endif
+
+                if (_command.length() > 2) {
+                    new_time = _command.substring(2).toInt();
+                    if (new_time >= DEFAULT_TIME) { // check the integer is a valid time (greater than Jan 1 2013)
+                        setTime(new_time); // Sync Arduino clock to the time received on the serial port
+                    }
+                }
                 if (unpause()) return 1;
                 else return -1;
             case '<':  // stop command
@@ -68,8 +69,6 @@ int SerialManager::readSerial()
                 #endif
                 writeWhoiam();
                 return 4;
-            default:
-                break;
         }
     }
     else {
@@ -92,17 +91,36 @@ void SerialManager::changeBaud(int newBaud)
 
 void SerialManager::writeWhoiam()
 {
-    Serial.print("iam");
+    Serial.print("~iam");
     Serial.print(_whoiam);
     Serial.print(PACKET_END);
 }
 
 void SerialManager::writeInit()
 {
-    Serial.print("init:");
+    Serial.print("~init:");
     Serial.print(_initPacket);
     Serial.print(PACKET_END);
 }
+
+void SerialManager::writeTime()
+{
+    uint32_t current_time = micros();
+    if (current_time < _arduinoPrevTime) {
+        _overflowCount++;
+    }
+    Serial.print("~ct:");
+
+    if (_overflowCount > 0) {
+        Serial.print(_overflowCount);
+        Serial.print(':');
+    }
+    Serial.print(current_time);
+    Serial.print(PACKET_END);
+
+    _arduinoPrevTime = current_time;
+}
+
 
 
 String SerialManager::getCommand() {
@@ -127,7 +145,7 @@ bool SerialManager::unpause()
 bool SerialManager::pause()
 {
     if (!_paused) {
-        Serial.print("\nstopping\n");
+        Serial.print("\n~stopping\n");
         _paused = true;
         return true;
     }

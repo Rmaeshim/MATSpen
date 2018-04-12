@@ -85,6 +85,7 @@ class Bno055Message(Message):
 
         self.packet_time = 0.0
         self.arduino_time = 0.0
+        self.millis_time = 0.0
         self.euler = Bno055Vector("euler")
         self.mag = Bno055Vector("mag")
         self.gyro = Bno055Vector("gyro")
@@ -149,17 +150,17 @@ class BNO055(Arduino):
         self.start()
         while self.device_active():
             while not self.empty():
-                packet_time, packets = self.read()
+                packet_time, arduino_times, packets = self.read()
 
-                for packet in packets:
-                    message = self.parse_packet(packet_time, packet, counter)
+                for arduino_time, packet in zip(arduino_times, packets):
+                    message = self.parse_packet(packet_time, arduino_time, packet, counter)
                     self.log_to_buffer(packet_time, message)
                     await self.broadcast(message)
                     counter += 1
 
             await asyncio.sleep(0.0)
 
-    def parse_packet(self, packet_time, packet, packet_num):
+    def parse_packet(self, packet_time, arduino_time, packet, packet_num):
         data = packet.split("\t")
         if data.pop(0) != 'imu':
             self.logger.warning("Invalid message header: %s" % str(packet))
@@ -172,12 +173,13 @@ class BNO055(Arduino):
         message.timestamp = time.time()
         message.n = packet_num
         message.packet_time = packet_time
+        message.arduino_time = arduino_time
 
         try:
             for segment in data:
                 if len(segment) > 0:
                     if segment[0] == "t":
-                        message.arduino_time = float(segment[1:]) / 1000
+                        message.millis_time = float(segment[1:]) / 1000
                     elif segment[0] == "e":
                         message.euler[segment[1]] = math.radians(float(segment[2:]))
                     elif segment[0] == "a":

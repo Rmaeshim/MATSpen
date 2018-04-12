@@ -154,6 +154,10 @@ int TB6612::getCurrentCommand() {
     return currentMotorCommand;
 }
 
+double TB6612::getCommandedSpeed() {
+    return pidSpeedSetPoint;
+}
+
 double TB6612::getSpeed()
 {
     uint32_t current_time = micros();

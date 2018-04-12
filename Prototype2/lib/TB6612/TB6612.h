@@ -25,6 +25,7 @@ class TB6612
         double getPosition();
         double getSpeed();
         int getCurrentCommand();
+        double getCommandedSpeed();
 
         void update();
 

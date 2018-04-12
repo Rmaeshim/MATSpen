@@ -16,15 +16,13 @@ class VisualizerOrchestrator(Orchestrator):
         super(VisualizerOrchestrator, self).__init__(event_loop)
 
         self.tb6612 = TB6612()
-        self.bno055 = BNO055(enabled=True)
-        self.plotter = Plotter(enabled=True)
+        self.bno055 = BNO055(enabled=False)
+        self.plotter = Plotter(enabled=True, time_data_window=3.0)
         self.gui = TkinterGUI("constants/pid_constants.pkl")
 
         self.subscribe(self.tb6612, self.plotter, self.plotter.tb6612_tag)
         self.subscribe(self.bno055, self.plotter, self.plotter.bno055_tag)
         self.subscribe(self.tb6612, self.gui, self.gui.tb6612_tag)
 
-    # async def setup(self):
-    #     self.tb6612.command_motor(6.0)
 
 run(VisualizerOrchestrator)
