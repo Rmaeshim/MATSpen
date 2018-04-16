@@ -10,13 +10,16 @@ TB6612 motor(12.0, 51.45, 6.7, 8.55, 3.2, 0.39);  // 50:1
 void setup() {
     motor.begin();
     Serial.begin(115200);
+
+    manager.writeHello();
+    manager.writeReady();
 }
 
 int prev_command = 0;
 double prev_commanded_speed = 0.0;
 void loop()
 {
-    if (Serial.available()) {
+    if (manager.available()) {
         int status = manager.readSerial();
         if (status == -1) return;
 
@@ -66,8 +69,6 @@ void loop()
         }
     }
     if (!manager.isPaused()) {
-        manager.writeTime();
-
         Serial.print("motor\tt");
         Serial.print(millis());
 

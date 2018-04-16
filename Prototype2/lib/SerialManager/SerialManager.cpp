@@ -13,18 +13,26 @@ SerialManager::SerialManager(String whoiam)
     _paused = true;
     _arduinoPrevTime = 0;
     _overflowCount = 0;
+    _sequence_num = 0;
 }
 
 void SerialManager::setInitData(String initData) {
     _initPacket = initData;
 }
 
+bool SerialManager::available() {
+    if (!_paused) {
+        writeTime();
+    }
+    return Serial.available() > 0;
+}
 
 int SerialManager::readSerial()
 {
     if (_paused) {
         delay(100);  // minimize activity while paused
     }
+
     _command = Serial.readStringUntil('\n');
     #ifdef DEBUG
     Serial.println(_command);
@@ -103,6 +111,37 @@ void SerialManager::writeInit()
     Serial.print(PACKET_END);
 }
 
+
+void SerialManager::writeHello()
+{
+    Serial.print("~hello!");
+    Serial.print(PACKET_END);
+}
+
+void SerialManager::writeReady()
+{
+    Serial.print("~ready!");
+    Serial.print(PACKET_END);
+}
+
+void SerialManager::printInt64(int64_t value)
+{
+    int32_t part1 = value >> 32;
+    int32_t part2 = value & 0xffffffff;
+    Serial.print(part1);
+    Serial.print(":");
+    Serial.print(part2);
+}
+
+void SerialManager::printUInt64(uint64_t value)
+{
+    uint32_t part1 = value >> 32;
+    uint32_t part2 = value & 0xffffffff;
+    Serial.print(part1);
+    Serial.print(":");
+    Serial.print(part2);
+}
+
 void SerialManager::writeTime()
 {
     uint32_t current_time = micros();
@@ -111,14 +150,15 @@ void SerialManager::writeTime()
     }
     Serial.print("~ct:");
 
-    if (_overflowCount > 0) {
-        Serial.print(_overflowCount);
-        Serial.print(':');
-    }
+    Serial.print(_overflowCount);
+    Serial.print(':');
     Serial.print(current_time);
+    Serial.print(':');
+    printUInt64(_sequence_num);
     Serial.print(PACKET_END);
 
     _arduinoPrevTime = current_time;
+    _sequence_num++;
 }
 
 

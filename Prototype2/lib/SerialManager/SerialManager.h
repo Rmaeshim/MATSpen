@@ -9,6 +9,7 @@
 class SerialManager {
 public:
     SerialManager(String whoiam);
+    bool available();
     int readSerial();
     String getCommand();
     bool isPaused();
@@ -18,21 +19,27 @@ public:
     bool unpause();
     bool pause();
 
-    void writeWhoiam();
-    void writeInit();
     void setInitData(String initData);
-    void writeTime();
+    void writeHello();
+    void writeReady();
 
 private:
     String _command;
     String _whoiam;
     String _initPacket;
     bool _paused;
+
+    void writeTime();
+    void writeWhoiam();
+    void writeInit();
+
+    void printInt64(int64_t value);
+    void printUInt64(uint64_t value);
+
     uint32_t _arduinoPrevTime;
     uint32_t _overflowCount;
+    uint64_t _sequence_num;
     char _timePrintBuffer[32];
-    uint32_t fake_time;
-    uint32_t debugMicros();
 };
 
 #endif  // _SERIAL_MANAGER_H_

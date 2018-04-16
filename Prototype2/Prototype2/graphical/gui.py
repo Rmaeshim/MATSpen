@@ -38,6 +38,7 @@ class TkinterGUI(Node):
         self.command_raw_button = Button(self.root, text="Set command", command=self.command_raw_speed)
 
         self.chirp_fn_button = Button(self.root, text="Chirp", command=self.send_chirp_fn)
+        self.random_fn_button = Button(self.root, text="Random", command=self.send_random_fn)
 
         self.set_point_slider.pack()
         self.set_point_button.pack()
@@ -47,6 +48,7 @@ class TkinterGUI(Node):
         self.command_raw_slider.pack()
 
         self.chirp_fn_button.pack()
+        self.random_fn_button.pack()
 
         self.tb6612_tag = "tb6612"
         self.tb6612_sub = self.define_subscription(
@@ -132,6 +134,14 @@ class TkinterGUI(Node):
         amp = []
         for _ in range(3):
             amp += np.linspace(3.0, 6.4, 500).tolist()
+        amp += [0.0]
+
+        self.tb6612.command_function(t, amp)
+
+    def send_random_fn(self):
+        # t = np.linspace(0, 10.0, 501).tolist()
+        t = 30.0
+        amp = (np.random.random(30) * 6.4).tolist()
         amp += [0.0]
 
         self.tb6612.command_function(t, amp)

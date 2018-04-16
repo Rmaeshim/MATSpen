@@ -81,6 +81,7 @@ class DataPlotterBase(Node):
                 continue
 
             await self.get_tb6612_data()
+
             if self.is_subscribed(self.bno055_tag):
                 await self.get_bno055_data()
 

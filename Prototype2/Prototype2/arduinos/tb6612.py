@@ -31,20 +31,18 @@ class TB6612(Arduino):
         self.current_commanded_speed = 0.0
 
     async def loop(self):
-        counter = 0
         self.start()
 
         while self.device_active():
             while not self.empty():
-                packet_time, arduino_times, packets = self.read()
+                packet_time, sequence_nums, arduino_times, packets = self.read()
 
-                for arduino_time, packet in zip(arduino_times, packets):
-                    message = self.parse_packet(packet_time, arduino_time, packet, counter)
+                for n, arduino_time, packet in zip(sequence_nums, arduino_times, packets):
+                    message = self.parse_packet(packet_time, arduino_time, packet, n)
                     if message is not None:
                         self.log_to_buffer(packet_time, message)
                         self.current_message = message
                         await self.broadcast(message)
-                        counter += 1
 
             await asyncio.sleep(0.0)
 
