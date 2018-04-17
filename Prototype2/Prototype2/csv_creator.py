@@ -3,10 +3,11 @@ from atlasbuggy import Node
 
 
 class CsvCreator(Node):
-    def __init__(self, file_path, use_tb6612=True, use_bno055=True):
+    def __init__(self, file_path, use_tb6612=True, use_bno055=True, put_name=False):
         super(CsvCreator, self).__init__()
 
         self.file_path = file_path
+        self.put_name = put_name
 
         if use_tb6612:
             self.tb6612_tag = "tb6612"
@@ -19,11 +20,18 @@ class CsvCreator(Node):
         self.data = []
 
     def tb6612_fn(self, message):
-        self.data.append(("motor", message.n, message.arduino_time, message.position, message.speed))
+        if self.put_name:
+            self.data.append(("motor", message.n, message.arduino_time, message.position, message.speed))
+        else:
+            self.data.append((message.n, message.arduino_time, message.position, message.speed))
 
     def bno055_fn(self, message):
-        # print(message)
-        self.data.append(("bno055", message.n, message.arduino_time, message.euler.x, message.euler.y, message.euler.z))
+        if self.put_name:
+            self.data.append((
+                "bno055", message.n, message.arduino_time, message.euler.x, message.euler.y, message.euler.z
+            ))
+        else:
+            self.data.append((message.n, message.arduino_time, message.euler.x, message.euler.y, message.euler.z))
 
     async def teardown(self):
         with open(self.file_path, 'w+') as file:
