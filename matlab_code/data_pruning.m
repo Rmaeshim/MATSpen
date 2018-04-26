@@ -1,16 +1,17 @@
-function [ang_vel_sensor_timestamps, sensor_ang_vel, downsampled_torque_hand, sample_time] = plant_identification( ...
-        sensor_file_path, sensor_start_time, sensor_end_time, sensor_axis, ...
-        motor_file_path, motor_start_time, motor_end_time ...
+function [ang_vel_sensor_timestamps, sensor_ang_vel, downsampled_torque_hand, sample_time] = data_pruning( ...
+        sensor_file_path, motor_file_path, start_time, end_time, sensor_axis ...
     )
 
-    [sensor_timestamps, sensor_angle_x, sensor_angle_y, sensor_angle_z] = read_sensor_data(sensor_file_path, sensor_start_time, sensor_end_time);
-    [motor_timestamps, motor_position, motor_frequency] = read_sensor_data(motor_file_path, motor_start_time, motor_end_time);
+    moving_avg_sensors = 4;
+
+    [sensor_timestamps, sensor_angle_x, sensor_angle_y, sensor_angle_z] = read_sensor_data(sensor_file_path, start_time, end_time);
+    [motor_timestamps, motor_position, motor_frequency] = read_motor_data(motor_file_path, start_time, end_time);
 
     if (sensor_axis == 'x')
         sensor_ang_vel = movmean(diff(sensor_angle_x), moving_avg_sensors) ./ diff(sensor_timestamps);
-    else if (sensor_axis == 'y')
+    elseif (sensor_axis == 'y')
         sensor_ang_vel = movmean(diff(sensor_angle_y), moving_avg_sensors) ./ diff(sensor_timestamps);
-    else if (sensor_axis == 'z')
+    elseif (sensor_axis == 'z')
         sensor_ang_vel = movmean(diff(sensor_angle_z), moving_avg_sensors) ./ diff(sensor_timestamps);
     end
     ang_vel_sensor_timestamps = sensor_timestamps(1:end - 1);
