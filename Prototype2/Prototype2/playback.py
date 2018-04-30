@@ -18,10 +18,10 @@ class PlaybackOrchestrator(Orchestrator):
         # log_date = "logs/2018_Mar_28"
         # log_time = "18_44_43.log"
 
-        log_date = "logs/2018_Apr_15"
+        log_date = "logs/2018_Apr_29"
 
-        log_time = "20_50_28.log"
-        data_set_name = "random, 0-6.4Hz"
+        log_time = "16_13_12.log"
+        data_set_name = "random, 3.0-6.4Hz"
 
         # log_time = "20_51_15.log"
         # data_set_name = "chirp, 3.0-6.4Hz"
@@ -32,8 +32,8 @@ class PlaybackOrchestrator(Orchestrator):
         tb6612_name = "TB6612"
         tb6612_directory = os.path.join(log_date, tb6612_name)
 
-        update_rate = 0.0  # go as fast as possible
-        # update_rate = None  # run in real time
+        # update_rate = 0.0  # go as fast as possible
+        update_rate = None  # run in real time
 
         bno055 = BNO055Playback(log_time, log_date, update_rate=update_rate)
         tb6612 = PlaybackNode(log_time, directory=tb6612_directory, message_class=TB6612Message, name=tb6612_name,

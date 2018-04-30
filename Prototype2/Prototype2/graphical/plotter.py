@@ -9,7 +9,7 @@ class Plotter(DataPlotterBase):
     def plot_data(self):
         if self.is_subscribed(self.bno055_tag):
             self.bno_x_line.set_xdata(self.bno_timestamps)
-            self.bno_x_line.set_ydata(self.x_data)
+            self.bno_x_line.set_ydata(self.y_data)
 
             self.bno_plot.relim()
             self.bno_plot.autoscale_view()
