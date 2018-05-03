@@ -23,13 +23,13 @@ public:
     void writeHello();
     void writeReady();
 
+    void writeTime();
 private:
     String _command;
     String _whoiam;
     String _initPacket;
     bool _paused;
 
-    void writeTime();
     void writeWhoiam();
     void writeInit();
 

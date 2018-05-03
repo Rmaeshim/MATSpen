@@ -22,7 +22,9 @@ class VisualizerOrchestrator(Orchestrator):
 
         self.subscribe(self.tb6612, self.plotter, self.plotter.tb6612_tag)
         self.subscribe(self.bno055, self.plotter, self.plotter.bno055_tag)
+        self.subscribe(self.bno055, self.plotter, self.plotter.bno055_motor_tag)
         self.subscribe(self.tb6612, self.gui, self.gui.tb6612_tag)
+        self.subscribe(self.bno055, self.gui, self.gui.bno055_tag)
 
 
 run(VisualizerOrchestrator)

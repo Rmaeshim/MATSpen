@@ -14,6 +14,7 @@ class DataPlotterBase(Node):
         self.plot_paused = False
         self.tb6612_times = []
         self.bno055_times = []
+        self.bno055_motor_times = []
 
         self.tb6612_tag = "tb6612"
         self.tb6612_sub = self.define_subscription(self.tb6612_tag)
@@ -22,6 +23,10 @@ class DataPlotterBase(Node):
         self.bno055_tag = "bno055"
         self.bno055_sub = self.define_subscription(self.bno055_tag, is_required=False)
         self.bno055_queue = None
+
+        self.bno055_motor_tag = "bno055_motor"
+        self.bno055_motor_sub = self.define_subscription(self.bno055_motor_tag, service="motor", is_required=False)
+        self.bno055_motor_queue = None
 
         self.time_data_window = time_data_window
 
@@ -43,21 +48,28 @@ class DataPlotterBase(Node):
         self.z_data = []
         self.bno_t0 = None
 
+        self.bno_motor_speed_timestamps = []
+        self.bno_motor_speed_data = []
+        self.bno_motor_position_data = []
+        self.bno_motor_t0 = None
+
     def enable_matplotlib(self):
         from matplotlib import pyplot as plt
         self.plt = plt
 
     def take(self):
         self.tb6612_queue = self.tb6612_sub.get_queue()
+
         if self.is_subscribed(self.bno055_tag):
             self.bno055_queue = self.bno055_sub.get_queue()
+
+        if self.is_subscribed(self.bno055_motor_tag):
+            self.bno055_motor_queue = self.bno055_motor_sub.get_queue()
 
     async def setup(self):
         if self.is_subscribed(self.bno055_tag):
             self.bno_plot = self.fig.add_subplot(2, 1, 1)
-            self.bno_x_line = self.bno_plot.plot([], [], '-', label="x")[0]
-            # self.bno_y_line = self.bno_plot.plot([], [], '-', label="y")[0]
-            # self.bno_z_line = self.bno_plot.plot([], [], '-', label="z")[0]
+            self.bno_data_line = self.bno_plot.plot([], [], '-', label="angle")[0]
 
             self.speed_plot = self.fig.add_subplot(2, 1, 2)
 
@@ -65,7 +77,10 @@ class DataPlotterBase(Node):
         else:
             self.speed_plot = self.fig.add_subplot(1, 1, 1)
 
-        self.speed_line = self.speed_plot.plot([], [], '-', label="Hz")[0]
+        if self.is_subscribed(self.bno055_motor_tag):
+            self.bno_motor_line = self.speed_plot.plot([], [], '-', label="hz pen")[0]
+
+        self.speed_line = self.speed_plot.plot([], [], '-', label="hz generator")[0]
         self.speed_plot.legend(fontsize="x-small", shadow="True", loc=0)
 
         self.plt.ion()
@@ -81,9 +96,10 @@ class DataPlotterBase(Node):
                 continue
 
             await self.get_tb6612_data()
-
             if self.is_subscribed(self.bno055_tag):
                 await self.get_bno055_data()
+            if self.is_subscribed(self.bno055_motor_tag):
+                await self.get_bno055_motor_data()
 
             if self.is_subscribed(self.bno055_tag):
                 if len(self.speed_timestamps) == 0 or len(self.bno_timestamps) == 0:
@@ -105,6 +121,12 @@ class DataPlotterBase(Node):
                     self.x_data.pop(0)
                     self.y_data.pop(0)
                     self.z_data.pop(0)
+
+            if self.is_subscribed(self.bno055_motor_tag):
+                while self.bno_motor_speed_timestamps[-1] - self.bno_motor_speed_timestamps[0] > self.time_data_window:
+                    self.bno_motor_speed_timestamps.pop(0)
+                    self.bno_motor_position_data.pop(0)
+                    self.bno_motor_speed_data.pop(0)
 
             self.plot_data()
             await self.draw()
@@ -138,6 +160,18 @@ class DataPlotterBase(Node):
             self.z_data.append(message.euler.z)
             self.bno_timestamps.append(message.arduino_time)
 
+    async def get_bno055_motor_data(self):
+        while not self.bno055_motor_queue.empty():
+            message = await asyncio.wait_for(self.bno055_motor_queue.get(), timeout=1)
+            if self.bno_motor_t0 is None:
+                self.bno_motor_t0 = message.arduino_time
+            message.arduino_time -= self.bno_motor_t0
+
+            self.bno055_motor_times.append(message.arduino_time)
+            self.bno_motor_position_data.append(message.position)
+            self.bno_motor_speed_data.append(message.speed)
+            self.bno_motor_speed_timestamps.append(message.arduino_time)
+
     def press(self, event):
         """matplotlib key press event. Close all figures when q is pressed"""
         if event.key == "q":
@@ -161,3 +195,7 @@ class DataPlotterBase(Node):
         if len(self.bno055_times) > 1:
             time_diff = np.diff(self.bno055_times)
             print("bno055 time fps avg: %0.4f" % (len(self.bno055_times) / sum(time_diff)))
+
+        if len(self.bno055_motor_times) > 1:
+            time_diff = np.diff(self.bno055_motor_times)
+            print("bno055 motor time fps avg: %0.4f" % (len(self.bno055_motor_times) / sum(time_diff)))

@@ -1,23 +1,9 @@
 import time
 import asyncio
 
-from atlasbuggy import Message
 from atlasbuggy.device.arduino import Arduino
 
-
-class TB6612Message(Message):
-    def __init__(self, n, timestamp=None):
-        super(TB6612Message, self).__init__(n, timestamp)
-
-        self.speed = 0.0
-        self.position = 0.0
-        self.packet_time = 0.0
-        self.millis_time = 0.0
-        self.arduino_time = 0.0
-        self.motor_output = 0
-        self.commanded_speed = 0.0
-
-        self.auto_serialize()
+from .messages import TB6612Message
 
 
 class TB6612(Arduino):
@@ -109,10 +95,6 @@ class TB6612(Arduino):
             pause_time += dt
             self.pause_command(pause_time, relative_time=False)
             self.command_motor(speed_hz[index])
-
-    def power_off_motor(self):
-        self.current_commanded_speed = 0.0
-        self.write("d|")
 
     def set_pid_constants(self, kp, ki, kd):
         self.current_commanded_speed = 0.0
