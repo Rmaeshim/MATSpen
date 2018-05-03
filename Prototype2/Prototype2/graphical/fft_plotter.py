@@ -21,8 +21,8 @@ class Plotter(DataPlotterBase):
         bno_freq = bno_freq[indices]
         bno_fft = bno_fft[indices]
 
-        self.bno_x_line.set_xdata(bno_freq)
-        self.bno_x_line.set_ydata(bno_fft)
+        self.bno_data_line.set_xdata(bno_freq)
+        self.bno_data_line.set_ydata(bno_fft)
 
         self.bno_plot.relim()
         self.bno_plot.autoscale_view()

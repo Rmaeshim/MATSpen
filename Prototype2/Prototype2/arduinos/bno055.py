@@ -3,138 +3,10 @@ import time
 import math
 import asyncio
 
-from atlasbuggy import Message
 from atlasbuggy.device import Arduino
 from atlasbuggy.log.playback import PlaybackNode
 
-
-class Bno055Vector:
-    def __init__(self, name, *vector, xyz=True):
-        self.name = name
-        self.x = 0.0
-        self.y = 0.0
-        self.z = 0.0
-        self.w = 0.0
-
-        self.xyz = xyz
-
-        if len(vector) >= 1:
-            self.x = vector[0]
-        if len(vector) >= 2:
-            self.y = vector[1]
-        if len(vector) >= 3:
-            self.z = vector[2]
-        if len(vector) >= 4:
-            self.w = vector[3]
-
-    def __getitem__(self, item):
-        if type(item) == int:
-            if item == 0:
-                return self.x
-            elif item == 1:
-                return self.y
-            elif item == 2:
-                return self.z
-            elif item == 3:
-                return self.w
-        else:
-            return self.__dict__[item]
-
-    def __setitem__(self, item, value):
-        if type(item) == int:
-            if item == 0:
-                self.x = value
-            elif item == 1:
-                self.y = value
-            elif item == 2:
-                self.z = value
-            elif item == 3:
-                self.w = value
-        else:
-            self.__dict__[item] = value
-
-    def get_tuple(self):
-        if self.xyz:
-            return self.x, self.y, self.z
-        else:
-            return self.x, self.y, self.z, self.w
-
-    @classmethod
-    def copy_vector(cls, vector):
-        new_vector = cls(vector.name, xyz=vector.xyz)
-        new_vector.x = vector.x
-        new_vector.y = vector.y
-        new_vector.z = vector.z
-        new_vector.w = vector.w
-
-        return new_vector
-
-    def __str__(self):
-        return str(self.get_tuple())
-
-
-class Bno055Message(Message):
-    message_regex = r"Bno055Message\(t: (\d.*), pt: (\d.*), at: (\d.*), n: (\d*), " \
-                    r"euler: \(([-\d., ]*)\), " \
-                    r"mag: \(([-\d., ]*)\), gyro: \(([-\d., ]*)\), accel: \(([-\d., ]*)\), " \
-                    r"linaccel: \(([-\d., ]*)\), quat: \(([-\d., ]*)\), " \
-                    r"status; sys: (\d*), a: (\d*), g: (\d*), m: (\d*)\)"
-
-    def __init__(self, n, timestamp=None):
-        super(Bno055Message, self).__init__(n, timestamp)
-
-        self.packet_time = 0.0
-        self.arduino_time = 0.0
-        self.millis_time = 0.0
-        self.euler = Bno055Vector("euler")
-        self.mag = Bno055Vector("mag")
-        self.gyro = Bno055Vector("gyro")
-        self.accel = Bno055Vector("accel")
-        self.linaccel = Bno055Vector("linaccel")
-        self.quat = Bno055Vector("quat", xyz=False)
-
-        self.vectors = [self.euler, self.mag, self.gyro, self.accel, self.linaccel, self.quat]
-
-        self.system_status = 0
-        self.accel_status = 0
-        self.gyro_status = 0
-        self.mag_status = 0
-
-        self.ignore_properties("vectors")
-        self.auto_serialize()
-
-    @classmethod
-    def copy_message(cls, message):
-        new_message = cls(message.timestamp, message.n)
-        new_message.packet_time = message.packet_time
-        new_message.arduino_time = message.arduino_time
-
-        new_message.euler = Bno055Vector.copy_vector(message.euler)
-        new_message.mag = Bno055Vector.copy_vector(message.mag)
-        new_message.gyro = Bno055Vector.copy_vector(message.gyro)
-        new_message.accel = Bno055Vector.copy_vector(message.accel)
-        new_message.linaccel = Bno055Vector.copy_vector(message.linaccel)
-        new_message.quat = Bno055Vector.copy_vector(message.quat)
-        new_message.vectors = [
-            new_message.euler,
-            new_message.mag,
-            new_message.gyro,
-            new_message.accel,
-            new_message.linaccel,
-            new_message.quat
-        ]
-
-        new_message.system_status = message.system_status
-        new_message.accel_status = message.accel_status
-        new_message.gyro_status = message.gyro_status
-        new_message.mag_status = message.mag_status
-
-        return new_message
-
-    @classmethod
-    def parse_field(cls, name, value):
-        data = tuple(map(float, value[1:-1].split(", ")))
-        return Bno055Vector(name, *data)
+from .messages import Bno055Message, TB6612Message
 
 
 class BNO055(Arduino):
@@ -143,7 +15,13 @@ class BNO055(Arduino):
         super(BNO055, self).__init__(
             "BNO055-IMU", enabled=enabled,
         )
-        self.prev_message = Bno055Message(time.time())
+        self.prev_imu_message = Bno055Message(0)
+        self.prev_motor_message = TB6612Message(0)
+
+        self.current_commanded_speed = 0.0
+
+        self.motor_service = "motor"
+        self.define_service(self.motor_service, TB6612Message)
 
     async def loop(self):
         self.start()
@@ -151,21 +29,31 @@ class BNO055(Arduino):
             while not self.empty():
                 packet_time, sequence_nums, arduino_times, packets = self.read()
                 for n, arduino_time, packet in zip(sequence_nums, arduino_times, packets):
-                    message = self.parse_packet(packet_time, arduino_time, packet, n)
-                    self.log_to_buffer(packet_time, message)
-                    await self.broadcast(message)
+                    await self.parse_packet(packet_time, arduino_time, packet, n)
 
             await asyncio.sleep(0.0)
 
-    def parse_packet(self, packet_time, arduino_time, packet, packet_num):
+    async def parse_packet(self, packet_time, arduino_time, packet, packet_num):
         data = packet.split("\t")
-        if data.pop(0) != 'imu':
-            self.logger.warning("Invalid message header: %s" % str(packet))
-            return
+        header_segment = data.pop(0)
+        if header_segment == 'imu':
+            message = self.parse_imu_msg(packet_time, arduino_time, packet, packet_num, data)
+            await self.broadcast(message)
 
+        elif header_segment == 'motor':
+            message = self.parse_motor_msg(packet_time, arduino_time, packet, packet_num, data)
+            await self.broadcast(message, self.motor_service)
+
+        else:
+            self.logger.warning("Invalid message header: %s" % str(packet))
+            return None
+
+        self.log_to_buffer(packet_time, message)
+
+    def parse_imu_msg(self, packet_time, arduino_time, packet, packet_num, data):
         segment = ""
 
-        message = Bno055Message.copy_message(self.prev_message)
+        message = Bno055Message.copy_message(self.prev_imu_message)
 
         message.timestamp = time.time()
         message.n = packet_num
@@ -205,8 +93,75 @@ class BNO055(Arduino):
         except ValueError:
             self.logger.error("Failed to parse: '%s'" % segment)
 
-        self.prev_message = message
+        self.prev_imu_message = message
+
         return message
+
+    def parse_motor_msg(self, packet_time, arduino_time, packet, packet_num, data):
+        message = self.prev_motor_message.copy()
+        message.timestamp = time.time()
+        message.n = packet_num
+        message.packet_time = packet_time
+        message.arduino_time = arduino_time
+
+        segment = ""
+        try:
+            for segment in data:
+                if len(segment) > 0:
+                    if segment[0] == "t":
+                        message.millis_time = float(segment[1:]) / 1000
+
+                    elif segment[0] == "s":
+                        message.speed = float(segment[1:])
+
+                    elif segment[0] == "p":
+                        message.position = float(segment[1:])
+
+                    elif segment[0] == "o":
+                        message.motor_output = int(segment[1:])
+
+        except ValueError:
+            self.logger.error("Failed to parse: '%s'" % segment)
+
+        self.prev_motor_message = message
+        return message
+
+    def command_motor(self, speed_rps):
+        print("setting speed to %s rps" % speed_rps)
+        self.current_commanded_speed = speed_rps
+        self.write("s%s" % speed_rps)
+
+    def command_raw(self, motor_command):
+        print("setting command to %s" % motor_command)
+        self.current_commanded_speed = 0.0
+        self.write("d%s" % int(motor_command))
+
+    def command_function(self, t, speed_hz):
+        if type(t) == list or type(t) == tuple:
+            assert len(t) - 1 == len(speed_hz)
+        else:
+            t = float(t)
+
+        pause_time = time.time()
+        for index in range(0, len(speed_hz)):
+            if type(t) == float:
+                dt = t / len(speed_hz)
+            else:
+                t0 = t[index]
+                t1 = t[index + 1]
+
+                dt = t1 - t0
+
+            pause_time += dt
+            self.pause_command(pause_time, relative_time=False)
+            self.command_motor(speed_hz[index])
+
+    def set_pid_constants(self, kp, ki, kd):
+        self.current_commanded_speed = 0.0
+        self.write("kp%s" % kp)
+        self.write("ki%s" % ki)
+        self.write("kd%s" % kd)
+        self.write("r")
 
 
 class BNO055Playback(PlaybackNode):
@@ -214,5 +169,14 @@ class BNO055Playback(PlaybackNode):
         bno055_name = "BNO055"
 
         directory = os.path.join(directory, bno055_name)
-        super(BNO055Playback, self).__init__(file_name, directory=directory, enabled=enabled,
-                                             message_class=Bno055Message, name=bno055_name, **playback_kwargs)
+        super(BNO055Playback, self).__init__(
+            file_name, directory=directory, enabled=enabled,
+            message_parse_fn=BNO055Playback.parse_message, name=bno055_name, **playback_kwargs
+        )
+
+    @staticmethod
+    def parse_message(line):
+        if line.startwith("Bno055Message"):
+            return Bno055Message.parse(line.message)
+        elif line.startwith("TB6612Message"):
+            return TB6612Message.parse(line.message)

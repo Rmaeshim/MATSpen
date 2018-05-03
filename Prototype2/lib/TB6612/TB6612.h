@@ -1,24 +1,15 @@
 #include <Encoder.h>
 
-#define TB6612_MOTOR_ENCODER_PIN_1 2
-#define TB6612_MOTOR_ENCODER_PIN_2 3
-#define TB6612_PWM_MOTOR_PIN_A 5
-#define TB6612_MOTOR_STANDBY_PIN 6
-#define TB6612_MOTOR_DIRECTION_PIN_1 7
-#define TB6612_MOTOR_DIRECTION_PIN_2 8
 #define TB6612_POSITION_BUFFER_SIZE 20
 
 class TB6612
 {
     public:
-        TB6612(double counts_per_rotation, double gear_ratio, double max_speed, double Kp, double Ki, double Kd);
-        TB6612(double counts_per_rotation, double gear_ratio, double max_speed);
+        TB6612(double counts_per_rotation, double gear_ratio, double max_speed,
+            int pwm_pin, int dir_pin_1, int dir_pin_2, int enc_pin_1, int enc_pin_2);
 
         void begin();
         void reset();
-        void standby();
-        void wakeup();
-        bool isAwake();
 
         void setMotorRaw(int speed);
         void setSpeed(double rps);
@@ -33,11 +24,16 @@ class TB6612
         bool pidEnabled;
 
     private:
+        int TB6612_MOTOR_ENCODER_PIN_1;
+        int TB6612_MOTOR_ENCODER_PIN_2;
+        int TB6612_PWM_MOTOR_PIN;
+        int TB6612_MOTOR_DIRECTION_PIN_1;
+        int TB6612_MOTOR_DIRECTION_PIN_2;
+
         double motorTickConversion;
         double motorPosRad;
         int currentMotorCommand;
         double currentMotorSpeed;
-        bool motorIsAwake;
 
         uint32_t prevTime;
         long prevMotorPos;

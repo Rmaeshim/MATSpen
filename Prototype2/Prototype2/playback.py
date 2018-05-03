@@ -3,8 +3,8 @@ import os
 from atlasbuggy import Orchestrator, run
 from atlasbuggy.log.playback import PlaybackNode
 
-# from graphical.fft_plotter import Plotter
-from graphical.plotter import Plotter
+from graphical.fft_plotter import Plotter
+# from graphical.plotter import Plotter
 from arduinos.bno055 import BNO055Playback
 from arduinos.tb6612 import TB6612Message
 from csv_creator import CsvCreator
@@ -20,11 +20,11 @@ class PlaybackOrchestrator(Orchestrator):
 
         log_date = "logs/2018_Apr_29"
 
-        log_time = "16_13_12.log"
-        data_set_name = "random, 3.0-6.4Hz"
+        # log_time = "20_50_28.log"
+        # data_set_name = "random, 0-6.4Hz"
 
-        # log_time = "20_51_15.log"
-        # data_set_name = "chirp, 3.0-6.4Hz"
+        log_time = "20_51_15.log"
+        data_set_name = "chirp, 3.0-6.4Hz"
 
         # log_time = "20_52_03.log"
         # data_set_name = "constant, 6.4Hz"

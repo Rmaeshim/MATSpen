@@ -6,6 +6,7 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <EEPROM.h>
+#include <TB6612.h>
 
 /* ----------------------- *
 * BNO055 global variables *
@@ -46,7 +47,12 @@ imu::Vector<3> linaccel;
 /* Set the delay between fresh samples */
 #define BNO055_SAMPLERATE_DELAY_MS (1)
 
+uint32_t imu_timer = 0;
+uint32_t current_time = 0;
 
+TB6612 motorB(12.0, 75.81, 6.4, 5, 7, 8, 2, 3);  // 75:1
+int prev_command = 0;
+double prev_commanded_speed = 0.0;
 
 /**************************************************************************/
 /*
@@ -542,6 +548,36 @@ void updateIMU() {
     Serial.print(accel_stat, DEC);
     Serial.print("\tsm");
     Serial.print(mag_stat, DEC);
+
+    Serial.print('\n');
+}
+
+void updateMotor()
+{
+    Serial.print("motor\tt");
+    Serial.print(millis());
+
+    Serial.print("\ts");
+    Serial.print(motorB.getSpeed(), 8);
+
+    Serial.print("\tp");
+    Serial.print(motorB.getPosition(), 8);
+
+    if (prev_command != motorB.getCurrentCommand()) {
+        Serial.print("\to");
+        Serial.print(motorB.getCurrentCommand());
+        prev_command = motorB.getCurrentCommand();
+    }
+
+    if (prev_commanded_speed != motorB.getCommandedSpeed()) {
+        Serial.print("\tx");
+        Serial.print(motorB.getCommandedSpeed());
+        prev_commanded_speed = motorB.getCommandedSpeed();
+    }
+
+    Serial.print('\n');
+
+    motorB.update();
 }
 
 void print_int64(int64_t value)
@@ -557,6 +593,7 @@ void print_int64(int64_t value)
 void setup() {
     // manager.begin();
     Serial.begin(115200);
+    motorB.begin();
 
     manager.writeHello();
 
@@ -574,27 +611,56 @@ void loop() {
         int status = manager.readSerial();
         String command = manager.getCommand();
 
-        // if (status == 2)  // start event
-        // {
-        //
-        // }
-        // else if (status == 1)  // stop event
-        // {
-        //
-        // }
-        if (status == 0)  // user command
+        if (status == 1)  {  // start event
+            motorB.reset();
+        }
+        else if (status == 2)  { // stop event
+            motorB.reset();
+        }
+        else if (status == 0)  // user command
         {
             if (command.equals("clear")) {
                 clearEeprom();
+            }
+            if (command.charAt(0) == 'r') {
+                motorB.reset();
+            }
+            else if (command.charAt(0) == 's') {
+                if (command.charAt(1) == '|') {
+                    motorB.pidEnabled = false;
+                }
+                else {
+                    if (!motorB.pidEnabled) {
+                        motorB.pidEnabled = true;
+                    }
+                    motorB.setSpeed(command.substring(1).toDouble());
+                }
+            }
+            else if (command.charAt(0) == 'd') {
+                motorB.pidEnabled = false;
+                motorB.setMotorRaw(command.substring(1).toInt());
+            }
+            else if (command.charAt(0) == 'k') {
+                switch(command.charAt(1)) {
+                    case 'p': motorB.Kp = command.substring(2).toDouble(); break;
+                    case 'i': motorB.Ki = command.substring(2).toDouble(); break;
+                    case 'd': motorB.Kd = command.substring(2).toDouble(); break;
+                }
             }
         }
     }
 
     if (!manager.isPaused()) {
-        updateIMU();
-        Serial.print('\n');
+        current_time = millis();
+        if (current_time < imu_timer) {
+            imu_timer = current_time;
+        }
+        if (current_time - imu_timer > BNO055_SAMPLERATE_DELAY_MS) {
+            updateIMU();
+            imu_timer = current_time;
+        }
 
-        // update rate for imu
-        delay(BNO055_SAMPLERATE_DELAY_MS);
+        manager.writeTime();
+        updateMotor();
     }
 }
