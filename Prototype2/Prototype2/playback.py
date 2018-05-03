@@ -18,7 +18,7 @@ class PlaybackOrchestrator(Orchestrator):
         # log_date = "logs/2018_Mar_28"
         # log_time = "18_44_43.log"
 
-        log_date = "logs/2018_Apr_15"
+        log_date = "logs/2018_Apr_29"
 
         # log_time = "20_50_28.log"
         # data_set_name = "random, 0-6.4Hz"

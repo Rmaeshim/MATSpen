@@ -199,8 +199,10 @@ class TkinterGUI(Node):
 
     def send_random_fn(self):
         # t = np.linspace(0, 10.0, 501).tolist()
-        t = 30.0
-        amp = (np.random.random(30) * 6.4).tolist()
+        t = 60.0
+        lower_bound = 3.0
+        upper_bound = 6.4
+        amp = (np.random.random(60) * (upper_bound - lower_bound) + lower_bound).tolist()
         amp += [0.0]
 
         self.tb6612.command_function(t, amp)
