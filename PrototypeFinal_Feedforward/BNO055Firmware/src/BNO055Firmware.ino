@@ -590,7 +590,7 @@ void print_int64(int64_t value)
     Serial.print(part2);
 }
 
-void feedforward(uint8_t axis, uint8_t freq_in)
+void feedforward(uint8_t axis, int64_t freq_in)
 {
     //xin, yin, zin are input values read from gyroscope
     #ifdef INCLUDE_GYRO_DATA
@@ -705,7 +705,7 @@ void loop() {
         }
 
         //Change axis as necessary
-        feedforward("y");
+        feedforward("y", 6);
 
         manager.writeTime();
         updateMotor();
