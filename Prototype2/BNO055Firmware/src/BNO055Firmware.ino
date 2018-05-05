@@ -111,7 +111,7 @@ double updateIMPcontroller(double current_motor_input, double current_sensor_out
     return output;
 }
 
-void feedforward(double current_sensor_output)
+double feedforward(double current_sensor_output)
 {
     //reference value is always zero
     //pidErr is error = (desired value) - (actual value)
