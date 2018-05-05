@@ -1,12 +1,14 @@
 
-#include <SerialManager.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <EEPROM.h>
+
+#include <SerialManager.h>
 #include <TB6612.h>
+#include <BNO055AngVelContainer.h>
 
 /* ----------------------- *
 * BNO055 global variables *
@@ -47,12 +49,63 @@ imu::Vector<3> linaccel;
 /* Set the delay between fresh samples */
 #define BNO055_SAMPLERATE_DELAY_MS (1)
 
+double x_ang_vel = 0.0;
+double y_ang_vel = 0.0;
+double z_ang_vel = 0.0;
+
+BNO055AngVelContainer x_ang_vel_container;
+BNO055AngVelContainer y_ang_vel_container;
+BNO055AngVelContainer z_ang_vel_container;
+
 uint32_t imu_timer = 0;
 uint32_t current_time = 0;
 
 TB6612 motorB(12.0, 75.81, 6.4, 5, 7, 8, 2, 3);  // 75:1
 int prev_command = 0;
 double prev_commanded_speed = 0.0;
+
+#define IMP_CONST_LEN 3
+
+char selected_imu_axis = 'x';
+bool imp_controller_enabled = false;
+double imp_const_A[IMP_CONST_LEN] = {1.0013, -1.8960, 0.9987};
+double imp_const_B[IMP_CONST_LEN] = {1.0000, -1.8960, 1.0000};
+double saved_inputs_speed[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
+double saved_outputs_ang_vel[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
+size_t imp_current_index = 0;
+
+double updateIMPcontroller(double current_motor_input, double current_sensor_output)
+{
+    // y(n) = b(1) / a(1) * x(n) + b(2) / a(1) * x(n - 1) + b(3) / a(1) * x(n - 2)
+    //                           - a(2) / a(1) * y(n - 1) - a(3) / a(1) * y(n - 2)
+
+    saved_outputs_ang_vel[imp_current_index] = current_sensor_output;
+    saved_inputs_speed[imp_current_index] = current_motor_input;
+
+    double output = imp_const_B[0] / imp_const_A[0] * saved_outputs_ang_vel[imp_current_index];
+
+    size_t buffer_i = 0;
+    size_t i;
+    for (i = 1; i < IMP_CONST_LEN; i++) {
+        buffer_i = (i + imp_current_index) % IMP_CONST_LEN;
+        output += imp_const_B[i] / imp_const_A[0] * saved_outputs_ang_vel[buffer_i];
+    }
+
+    buffer_i = 0;
+    for (i = 1; i < IMP_CONST_LEN; i++) {
+        buffer_i = (i + imp_current_index) % IMP_CONST_LEN;
+        output -= imp_const_A[i] / imp_const_A[0] * saved_inputs_speed[buffer_i];
+    }
+
+    if (imp_current_index == 0) {
+        imp_current_index = IMP_CONST_LEN - 1;
+    }
+    else {
+        imp_current_index--;
+    }
+
+    return output;
+}
 
 /**************************************************************************/
 /*
@@ -418,18 +471,21 @@ void updateIMU() {
         Serial.print("\tez");
         Serial.print(ex, 4);
         ex = new_ex;
+        x_ang_vel = x_ang_vel_container.computeAvg(ex);
     }
 
     if (new_ey != ey) {
         Serial.print("\tey");
         Serial.print(ey, 4);
         ey = new_ey;
+        y_ang_vel = y_ang_vel_container.computeAvg(ey);
     }
 
     if (new_ez != ez) {
         Serial.print("\tex");
         Serial.print(ez, 4);
         ez = new_ez;
+        z_ang_vel = z_ang_vel_container.computeAvg(ez);
     }
     #endif  // USE_QUATERNIONS
     #endif  // INCLUDE_FILTERED_DATA
@@ -622,8 +678,18 @@ void loop() {
             if (command.equals("clear")) {
                 clearEeprom();
             }
+
             if (command.charAt(0) == 'r') {
                 motorB.reset();
+            }
+            else if (command.charAt(0) == 'i') {
+                if (command.charAt(1) == '0') {
+                    imp_controller_enabled = false;
+                }
+                else {
+                    imp_controller_enabled = true;
+                    selected_imu_axis = command.charAt(1);
+                }
             }
             else if (command.charAt(0) == 's') {
                 if (command.charAt(1) == '|') {
@@ -662,5 +728,13 @@ void loop() {
 
         manager.writeTime();
         updateMotor();
+
+        if (imp_controller_enabled) {
+            switch (selected_imu_axis) {
+                case 'x': updateIMPcontroller(motorB.getSpeed(), x_ang_vel); break;
+                case 'y': updateIMPcontroller(motorB.getSpeed(), y_ang_vel); break;
+                case 'z': updateIMPcontroller(motorB.getSpeed(), z_ang_vel); break;
+            }
+        }
     }
 }
