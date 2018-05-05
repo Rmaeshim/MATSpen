@@ -67,12 +67,16 @@ double prev_commanded_speed = 0.0;
 #define IMP_CONST_LEN 3
 
 char selected_imu_axis = 'x';
+double command_controller_speed = 0.0;
 bool imp_controller_enabled = false;
+bool feedforward_controller_enabled = false;
 double imp_const_A[IMP_CONST_LEN] = {1.0013, -1.8960, 0.9987};
 double imp_const_B[IMP_CONST_LEN] = {1.0000, -1.8960, 1.0000};
 double saved_inputs_speed[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
 double saved_outputs_ang_vel[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
 size_t imp_current_index = 0;
+
+double feedforward_Kp = 1.0;
 
 double updateIMPcontroller(double current_motor_input, double current_sensor_output)
 {
@@ -105,6 +109,20 @@ double updateIMPcontroller(double current_motor_input, double current_sensor_out
     }
 
     return output;
+}
+
+void feedforward(double current_sensor_output)
+{
+    //reference value is always zero
+    //pidErr is error = (desired value) - (actual value)
+    //pidErr will also give opposite direction for motor to turn
+    float pidErr = -current_sensor_output/(2*PI);
+
+    //want fast adjustment, should only have Kp as gain
+    //adjustedSpeed is new speed of PID controller, convert from radians/s to rps
+    //should tune Kp until appropriate
+    //in terms of feedfoward, Kp should be 1
+    return feedforward_Kp*pidErr;
 }
 
 /**************************************************************************/
@@ -685,10 +703,26 @@ void loop() {
             else if (command.charAt(0) == 'i') {
                 if (command.charAt(1) == '0') {
                     imp_controller_enabled = false;
+                    feedforward_controller_enabled = false;
                 }
                 else {
                     imp_controller_enabled = true;
+                    feedforward_controller_enabled = false;
+
                     selected_imu_axis = command.charAt(1);
+                }
+            }
+            else if (command.charAt(0) == 'f') {
+                if (command.charAt(1) == '0') {
+                    imp_controller_enabled = false;
+                    feedforward_controller_enabled = false;
+                }
+                else {
+                    feedforward_controller_enabled = true;
+                    imp_controller_enabled = false;
+
+                    selected_imu_axis = command.charAt(1);
+                    feedforward_Kp = command.substring(2).toDouble();
                 }
             }
             else if (command.charAt(0) == 's') {
@@ -731,10 +765,18 @@ void loop() {
 
         if (imp_controller_enabled) {
             switch (selected_imu_axis) {
-                case 'x': updateIMPcontroller(motorB.getSpeed(), x_ang_vel); break;
-                case 'y': updateIMPcontroller(motorB.getSpeed(), y_ang_vel); break;
-                case 'z': updateIMPcontroller(motorB.getSpeed(), z_ang_vel); break;
+                case 'x': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), x_ang_vel); break;
+                case 'y': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), y_ang_vel); break;
+                case 'z': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), z_ang_vel); break;
             }
+            motorB.setSpeed(command_controller_speed);
         }
+        else if (feedforward_controller_enabled) {
+            switch (selected_imu_axis) {
+                case 'x': command_controller_speed = feedforward(x_ang_vel); break;
+                case 'y': command_controller_speed = feedforward(y_ang_vel); break;
+                case 'z': command_controller_speed = feedforward(z_ang_vel); break;
+            }
+            motorB.setSpeed(command_controller_speed);        }
     }
 }
