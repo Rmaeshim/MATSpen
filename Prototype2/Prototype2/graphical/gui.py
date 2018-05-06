@@ -56,6 +56,12 @@ class TkinterGUI(Node):
         self.chirp_fn_button = Button(self.root, text="Chirp", command=self.send_chirp_fn)
         self.random_fn_button = Button(self.root, text="Random", command=self.send_random_fn)
 
+        # controller parameters
+        self.enable_imp_button_x = Button(self.root, text="Enable IMP X", command=self.send_imp_x)
+        self.enable_imp_button_y = Button(self.root, text="Enable IMP Y", command=self.send_imp_y)
+        self.enable_imp_button_z = Button(self.root, text="Enable IMP Z", command=self.send_imp_z)
+        self.disable_imp_button = Button(self.root, text="Disable IMP", command=self.send_imp_cancel)
+
         self.set_pid_button.pack()
 
         self.tremor_set_point_slider.pack()
@@ -72,6 +78,11 @@ class TkinterGUI(Node):
 
         self.chirp_fn_button.pack()
         self.random_fn_button.pack()
+
+        self.enable_imp_button_x.pack()
+        self.enable_imp_button_y.pack()
+        self.enable_imp_button_z.pack()
+        self.disable_imp_button.pack()
 
         self.tb6612_tag = "tb6612"
         self.tb6612_sub = self.define_subscription(
@@ -206,6 +217,22 @@ class TkinterGUI(Node):
         amp += [0.0]
 
         self.tb6612.command_function(t, amp)
+
+    def send_imp_x(self):
+        self.bno055.cancel_commands()
+        self.bno055.command_enable_imp("x")
+
+    def send_imp_y(self):
+        self.bno055.cancel_commands()
+        self.bno055.command_enable_imp("y")
+
+    def send_imp_z(self):
+        self.bno055.cancel_commands()
+        self.bno055.command_enable_imp("z")
+
+    def send_imp_cancel(self):
+        self.bno055.cancel_commands()
+        self.bno055.command_disable_imp()
 
     def shutdown_tk(self):
         self.is_running = False

@@ -156,6 +156,13 @@ class BNO055(Arduino):
             self.pause_command(pause_time, relative_time=False)
             self.command_motor(speed_hz[index])
 
+    def command_enable_imp(self, axis):
+        if axis in ["x", "y", "z"]:
+            self.write("i%s" % axis)
+
+    def command_disable_imp(self):
+        self.write("i0")
+
     def set_pid_constants(self, kp, ki, kd):
         self.current_commanded_speed = 0.0
         self.write("kp%s" % kp)

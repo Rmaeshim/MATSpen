@@ -70,45 +70,43 @@ char selected_imu_axis = 'x';
 double command_controller_speed = 0.0;
 bool imp_controller_enabled = false;
 bool feedforward_controller_enabled = false;
-double imp_const_A[IMP_CONST_LEN] = {1.0013, -1.8960, 0.9987};
-double imp_const_B[IMP_CONST_LEN] = {1.0000, -1.8960, 1.0000};
-double saved_inputs_speed[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
-double saved_outputs_ang_vel[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
+double imp_A[IMP_CONST_LEN] = {1.0013, -1.8960, 0.9987};
+double imp_B[IMP_CONST_LEN] = {1.0000, -1.8960, 1.0000};
+double imp_xn[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
+double imp_yn[IMP_CONST_LEN] = {0.0, 0.0, 0.0};
 size_t imp_current_index = 0;
 
 double feedforward_Kp = 1.0;
 
-double updateIMPcontroller(double current_motor_input, double current_sensor_output)
+double updateIMPcontroller(double current_sensor_output)
 {
     // y(n) = b(1) / a(1) * x(n) + b(2) / a(1) * x(n - 1) + b(3) / a(1) * x(n - 2)
     //                           - a(2) / a(1) * y(n - 1) - a(3) / a(1) * y(n - 2)
 
-    saved_outputs_ang_vel[imp_current_index] = current_sensor_output;
-    saved_inputs_speed[imp_current_index] = current_motor_input;
-
-    double output = imp_const_B[0] / imp_const_A[0] * saved_outputs_ang_vel[imp_current_index];
+    double current_motor_output = imp_B[0] / imp_A[0] * imp_xn[imp_current_index];
 
     size_t buffer_i = 0;
     size_t i;
     for (i = 1; i < IMP_CONST_LEN; i++) {
-        buffer_i = (i + imp_current_index) % IMP_CONST_LEN;
-        output += imp_const_B[i] / imp_const_A[0] * saved_outputs_ang_vel[buffer_i];
+        buffer_i = (imp_current_index + IMP_CONST_LEN - i) % IMP_CONST_LEN;
+        current_motor_output += imp_B[i] / imp_A[0] * imp_xn[buffer_i];
     }
 
     buffer_i = 0;
     for (i = 1; i < IMP_CONST_LEN; i++) {
-        buffer_i = (i + imp_current_index) % IMP_CONST_LEN;
-        output -= imp_const_A[i] / imp_const_A[0] * saved_inputs_speed[buffer_i];
+        buffer_i = (imp_current_index + IMP_CONST_LEN - i) % IMP_CONST_LEN;
+        current_motor_output -= imp_A[i] / imp_A[0] * imp_yn[buffer_i];
     }
 
-    if (imp_current_index == 0) {
-        imp_current_index = IMP_CONST_LEN - 1;
-    }
-    else {
-        imp_current_index--;
+    imp_xn[imp_current_index] = current_sensor_output;
+    imp_yn[imp_current_index] = current_motor_output;
+
+    imp_current_index++;
+    if (imp_current_index >= IMP_CONST_LEN) {
+        imp_current_index = 0;
     }
 
-    return output;
+    return current_motor_output;
 }
 
 double feedforward(double current_sensor_output)
@@ -765,9 +763,9 @@ void loop() {
 
         if (imp_controller_enabled) {
             switch (selected_imu_axis) {
-                case 'x': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), x_ang_vel); break;
-                case 'y': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), y_ang_vel); break;
-                case 'z': command_controller_speed = updateIMPcontroller(motorB.getSpeed(), z_ang_vel); break;
+                case 'x': command_controller_speed = updateIMPcontroller(x_ang_vel); break;
+                case 'y': command_controller_speed = updateIMPcontroller(y_ang_vel); break;
+                case 'z': command_controller_speed = updateIMPcontroller(z_ang_vel); break;
             }
             motorB.setSpeed(command_controller_speed);
         }
@@ -777,6 +775,7 @@ void loop() {
                 case 'y': command_controller_speed = feedforward(y_ang_vel); break;
                 case 'z': command_controller_speed = feedforward(z_ang_vel); break;
             }
-            motorB.setSpeed(command_controller_speed);        }
+            motorB.setSpeed(command_controller_speed);
+        }
     }
 }
