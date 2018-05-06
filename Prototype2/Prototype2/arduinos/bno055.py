@@ -20,6 +20,9 @@ class BNO055(Arduino):
 
         self.current_commanded_speed = 0.0
 
+        self.motor_msg_num = 0
+        self.bno_msg_num = 0
+
         self.motor_service = "motor"
         self.define_service(self.motor_service, TB6612Message)
 
@@ -29,19 +32,19 @@ class BNO055(Arduino):
             while not self.empty():
                 packet_time, sequence_nums, arduino_times, packets = self.read()
                 for n, arduino_time, packet in zip(sequence_nums, arduino_times, packets):
-                    await self.parse_packet(packet_time, arduino_time, packet, n)
+                    await self.parse_packet(packet_time, arduino_time, packet)
 
             await asyncio.sleep(0.0)
 
-    async def parse_packet(self, packet_time, arduino_time, packet, packet_num):
+    async def parse_packet(self, packet_time, arduino_time, packet):
         data = packet.split("\t")
         header_segment = data.pop(0)
         if header_segment == 'imu':
-            message = self.parse_imu_msg(packet_time, arduino_time, packet, packet_num, data)
+            message = self.parse_imu_msg(packet_time, arduino_time, data)
             await self.broadcast(message)
 
         elif header_segment == 'motor':
-            message = self.parse_motor_msg(packet_time, arduino_time, packet, packet_num, data)
+            message = self.parse_motor_msg(packet_time, arduino_time, data)
             await self.broadcast(message, self.motor_service)
 
         else:
@@ -50,13 +53,13 @@ class BNO055(Arduino):
 
         self.log_to_buffer(packet_time, message)
 
-    def parse_imu_msg(self, packet_time, arduino_time, packet, packet_num, data):
+    def parse_imu_msg(self, packet_time, arduino_time, data):
         segment = ""
 
         message = Bno055Message.copy_message(self.prev_imu_message)
 
         message.timestamp = time.time()
-        message.n = packet_num
+        message.n = self.bno_msg_num
         message.packet_time = packet_time
         message.arduino_time = arduino_time
 
@@ -94,13 +97,14 @@ class BNO055(Arduino):
             self.logger.error("Failed to parse: '%s'" % segment)
 
         self.prev_imu_message = message
+        self.bno_msg_num += 1
 
         return message
 
-    def parse_motor_msg(self, packet_time, arduino_time, packet, packet_num, data):
+    def parse_motor_msg(self, packet_time, arduino_time, data):
         message = self.prev_motor_message.copy()
         message.timestamp = time.time()
-        message.n = packet_num
+        message.n = self.motor_msg_num
         message.packet_time = packet_time
         message.arduino_time = arduino_time
 
@@ -124,6 +128,8 @@ class BNO055(Arduino):
             self.logger.error("Failed to parse: '%s'" % segment)
 
         self.prev_motor_message = message
+        self.motor_msg_num += 1
+
         return message
 
     def command_motor(self, speed_rps):
@@ -178,12 +184,26 @@ class BNO055Playback(PlaybackNode):
         directory = os.path.join(directory, bno055_name)
         super(BNO055Playback, self).__init__(
             file_name, directory=directory, enabled=enabled,
-            message_parse_fn=BNO055Playback.parse_message, name=bno055_name, **playback_kwargs
+            message_parse_fn=self.parse_message, name=bno055_name, **playback_kwargs
         )
 
-    @staticmethod
-    def parse_message(line):
-        if line.startwith("Bno055Message"):
-            return Bno055Message.parse(line.message)
-        elif line.startwith("TB6612Message"):
-            return TB6612Message.parse(line.message)
+        self.motor_service = "motor"
+        self.define_service(self.motor_service, TB6612Message)
+
+        self.bno055_message = Bno055Message(0)
+        self.tb6612_message = TB6612Message(0)
+
+    async def parse_message(self, line):
+        if line.message.startswith("Bno055Message"):
+            self.bno055_message = Bno055Message.parse(line.message)
+            if self.bno055_message:
+                await self.broadcast(self.bno055_message)
+
+        elif line.message.startswith("TB6612Message"):
+            self.tb6612_message = TB6612Message.parse(line.message)
+            if self.tb6612_message:
+                await self.broadcast(self.tb6612_message, self.motor_service)
+
+        else:
+            self.logger.info("'%s' said: %s" % (self.name, line.message))
+        await asyncio.sleep(0.0)
