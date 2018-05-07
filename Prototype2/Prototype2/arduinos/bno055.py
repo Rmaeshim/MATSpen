@@ -70,6 +70,10 @@ class BNO055(Arduino):
                         message.millis_time = float(segment[1:]) / 1000
                     elif segment[0] == "e":
                         message.euler[segment[1]] = math.radians(float(segment[2:]))
+                    elif segment[0] == "v":
+                        message.ang_v[segment[1]] = float(segment[2:])
+                    elif segment[0] == "h":
+                        message.frequency[segment[1]] = float(segment[2:])
                     elif segment[0] == "a":
                         message.accel[segment[1]] = float(segment[2:])
                     elif segment[0] == "g":
@@ -162,12 +166,19 @@ class BNO055(Arduino):
             self.pause_command(pause_time, relative_time=False)
             self.command_motor(speed_hz[index])
 
-    def command_enable_imp(self, axis):
+    def command_enable_imp(self, axis, kp):
+        print("enabling IMP")
         if axis in ["x", "y", "z"]:
-            self.write("i%s" % axis)
+            self.write("c1%si%s" % (axis, kp))
 
-    def command_disable_imp(self):
-        self.write("i0")
+    def command_enable_feedforward(self, axis, kp):
+        print("enabling feedforward")
+        if axis in ["x", "y", "z"]:
+            self.write("c1%sf%s" % (axis, kp))
+
+    def command_disable_controllers(self):
+        print("disabling controllers")
+        self.write("c0")
 
     def set_pid_constants(self, kp, ki, kd):
         self.current_commanded_speed = 0.0

@@ -11,7 +11,7 @@ s = tf('s');
 C_w1 = s + 0.1 + 2*pi * freq1 * 1i;
 C = (C_w1) * conj(C_w1) / (s^2 + (2*pi * freq1)^2);
 
-plant = 1 / (s^2 + s + 1);
+plant = (s^2 + s + 1) / (s^3 + s^2 + s + 1);
 imp_system = feedback(plant * C, 1);
 disp('feedback system created')
 
@@ -27,17 +27,20 @@ B = den{:}  % denominator of imp_discrete
 % M = idpoly(A, {B, F}, 'NoiseVariance', sample_time);
 % [poly_a, poly_b, poly_c, poly_d, poly_e] = polydata(M);
 
-[step_Y, step_T, step_X] = step(imp_system);
+final_time = 10;
+% X = ones(1, round(final_time / sample_time));
+sim_time = linspace(0, final_time, 1000);
+input_signal = 0.02 * sin(freq1 * sim_time) + 2.0;
+
+sim_Y = lsim(imp_system, input_signal, sim_time);
 disp('step response computed')
-final_time = step_T(end);
-X = ones(1, round(final_time / sample_time));
-[Y, Zf] = filter(F, B, X); % runs the difference equation, A & B are the controller in discrete time domain, X is the input function
+[diff_output, Zf] = filter(F, B, input_signal); % runs the difference equation, A & B are the controller in discrete time domain, X is the input function
 disp('difference equation run')
 
-difference_equation_time = linspace(0, final_time, length(Y));
 
 hold on
 figure(1)
-plot(difference_equation_time, Y, 'LineWidth', 4)
-plot(step_T, step_Y, 'LineWidth', 2)
-legend('difference', 'continuous')
+plot(sim_time, diff_output, 'LineWidth', 2)
+plot(sim_time, sim_Y, 'LineWidth', 4)
+plot(sim_time, input_signal, 'LineWidth', 2)
+legend('difference', 'continuous', 'input')

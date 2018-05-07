@@ -82,12 +82,6 @@ class Bno055Vector:
 
 
 class Bno055Message(Message):
-    message_regex = r"Bno055Message\(t: (\d.*), pt: (\d.*), at: (\d.*), n: (\d*), " \
-                    r"euler: \(([-\d., ]*)\), " \
-                    r"mag: \(([-\d., ]*)\), gyro: \(([-\d., ]*)\), accel: \(([-\d., ]*)\), " \
-                    r"linaccel: \(([-\d., ]*)\), quat: \(([-\d., ]*)\), " \
-                    r"status; sys: (\d*), a: (\d*), g: (\d*), m: (\d*)\)"
-
     def __init__(self, n, timestamp=None):
         super(Bno055Message, self).__init__(n, timestamp)
 
@@ -95,13 +89,15 @@ class Bno055Message(Message):
         self.arduino_time = 0.0
         self.millis_time = 0.0
         self.euler = Bno055Vector("euler")
+        self.ang_v = Bno055Vector("ang_v")
+        self.frequency = Bno055Vector("frequency")
         self.mag = Bno055Vector("mag")
         self.gyro = Bno055Vector("gyro")
         self.accel = Bno055Vector("accel")
         self.linaccel = Bno055Vector("linaccel")
         self.quat = Bno055Vector("quat", xyz=False)
 
-        self.vectors = [self.euler, self.mag, self.gyro, self.accel, self.linaccel, self.quat]
+        self.vectors = [self.euler, self.ang_v, self.frequency, self.mag, self.gyro, self.accel, self.linaccel, self.quat]
 
         self.system_status = 0
         self.accel_status = 0
@@ -118,6 +114,8 @@ class Bno055Message(Message):
         new_message.arduino_time = message.arduino_time
 
         new_message.euler = Bno055Vector.copy_vector(message.euler)
+        new_message.ang_v = Bno055Vector.copy_vector(message.ang_v)
+        new_message.frequency = Bno055Vector.copy_vector(message.frequency)
         new_message.mag = Bno055Vector.copy_vector(message.mag)
         new_message.gyro = Bno055Vector.copy_vector(message.gyro)
         new_message.accel = Bno055Vector.copy_vector(message.accel)
@@ -125,6 +123,8 @@ class Bno055Message(Message):
         new_message.quat = Bno055Vector.copy_vector(message.quat)
         new_message.vectors = [
             new_message.euler,
+            new_message.ang_v,
+            new_message.frequency,
             new_message.mag,
             new_message.gyro,
             new_message.accel,

@@ -41,6 +41,7 @@ void TB6612::reset() {
 }
 
 void TB6612::setSpeed(double rps) {
+    pidEnabled = true;
     pidSpeedSetPoint = rps;
     openLoopSetPoint = pidSpeedSetPoint * openLoopK;
 }

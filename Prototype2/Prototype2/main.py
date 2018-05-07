@@ -3,6 +3,7 @@ import matplotlib
 from atlasbuggy import Orchestrator, run
 
 from graphical.plotter import Plotter
+# from graphical.fft_plotter import Plotter
 from arduinos.tb6612 import TB6612
 from arduinos.bno055 import BNO055
 

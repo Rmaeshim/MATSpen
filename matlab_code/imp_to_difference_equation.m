@@ -3,7 +3,7 @@ clear all
 
 % sample_time = 0.1;
 sample_time = 0.013;
-freq1 = 4.0;
+freq1 = 5.0;
 opt = c2dOptions('Method', 'tustin', 'PrewarpFrequency', freq1);
 s = tf('s');
 

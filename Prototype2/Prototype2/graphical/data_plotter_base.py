@@ -155,9 +155,13 @@ class DataPlotterBase(Node):
             message.arduino_time -= self.bno_t0
 
             self.bno055_times.append(message.arduino_time)
-            self.x_data.append(message.euler.x)
-            self.y_data.append(message.euler.y)
-            self.z_data.append(message.euler.z)
+            # self.x_data.append(message.frequency.x)
+            # self.y_data.append(message.frequency.y)
+            # self.z_data.append(message.frequency.z)
+
+            self.x_data.append(message.ang_v.x)
+            self.y_data.append(message.ang_v.y)
+            self.z_data.append(message.ang_v.z)
             self.bno_timestamps.append(message.arduino_time)
 
     async def get_bno055_motor_data(self):
