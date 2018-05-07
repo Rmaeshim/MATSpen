@@ -60,7 +60,7 @@ smallw_offset = 20;
 freq1 = f(Index + smallw_offset);
 freq2 = 5.5;
 
-freq1 = 5;
+%freq1 = 5;
 %% Define Plant and Controller
 
 % Simplify Plant as a
@@ -101,11 +101,16 @@ controller_continuous = d2c(controller_discrete);
 C = controller_continuous;
 
 %http://ctms.engin.umich.edu/CTMS/index.php?example=MotorSpeed&section=SystemModeling
-J = 0.01;
-b = 0.1;
-K = 0.01;
-R = 1;
-L = 0.5;
+m_bolt = 0.0368544;
+L_bolt = 0.0454;
+i_motor = 0.360; %current
+torque_motor = 0.064; %stall torque
+V_motor = 0.2831; %back emf voltage
+J = m_bolt*((L_bolt/2)^2); %rotor moment of inertia
+b = 0.1; %motor viscous friction constant
+K = torque_motor/i_motor; %electromotive force constant/motor torque constant
+R = 16.667; %electric resistance
+L = 0.5; %electric inductance
 s = tf('s');
 M = K/((J*s+b)*(L*s+R)+K^2);
 %M = 1;
@@ -144,7 +149,7 @@ plot(simTime, plantOut);
 xlabel('Time (s)'); ylabel('plantOut');
 title('plantOutput');
 
-fft_plot()
+%fft_plot()
 
 figure();
 plot(simTime, controllerIn, simTime, command);
